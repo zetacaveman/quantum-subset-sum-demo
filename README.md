@@ -5,43 +5,82 @@ algorithm.
 
 （It isn't fully complete yet）
 
-The code and notebooks here focus on Subset Sum, not the older Sudoku demo that
-used to live in this repository.
-
-The core problem is:
+## Problem and Method
 
 Given positive integers $a_0, a_1, \ldots, a_{n-1}$ and a target integer $T$,
-find $x$ in $\{0,1\}^n$ such that:
+the Subset Sum problem asks for a selector bitstring $x \in \{0,1\}^n$ such
+that:
 
 $$
 \sum_i x_i a_i = T
 $$
 
 The selector bit `x_i` means whether the number `a_i` is included in the
-subset. Grover search prepares a superposition over all selector bitstrings,
-marks the bitstrings whose weighted sum equals the target, and amplifies the
-marked states.
+subset. Each basis state $|x\rangle$ represents one candidate subset.
 
-## Two Demo Tracks
+Grover's algorithm searches over these candidate subsets as follows.
 
-This repository has two related but different demo tracks:
+Step 1: prepare a uniform superposition over all $N = 2^n$ candidates:
 
-1. **High-level `WeightedAdder` demo**
-   - Main file: `subset_sum_grover_weighted_adder.ipynb`
-   - Uses Qiskit's `WeightedAdder` to compute the subset sum.
-   - Best starting point for understanding the Grover workflow.
-   - The arithmetic is correct but mostly hidden inside Qiskit's library.
-   - It can be used to explain the code in `quantum_subset_sum_weighted_adder.py`.
+$$
+H^{\otimes n}|0^n\rangle = \frac{1}{\sqrt{N}} \sum_{x \in \{0,1\}^n}|x\rangle = |\varphi\rangle
+$$
 
-2. **Based on the paper**
-   - Main file: `subset_sum_grover_based_on_paper.ipynb`
-   - Follows the outline of a lower-level construction from the referenced
-     paper (https://arxiv.org/pdf/2410.01775).
-   - Better for studying how the arithmetic/oracle might be built explicitly.
-   - More exploratory and less polished than the `WeightedAdder` notebook. Note the paper already has it own repo at `ABenoit0226/quantum-place-route`.
+Step 2: use a phase oracle to mark the desired state. In the simplest case,
+for a target solution $s$, the oracle acts as:
 
-The Python script is a reusable helper / smoke-test version of the
-`WeightedAdder` approach. It is not the primary tutorial demo.
+$$
+U_s|x\rangle =
+\begin{cases}
+-|x\rangle, & x=s,\\
+|x\rangle, & x\neq s.
+\end{cases}
+$$
+
+For Subset Sum, the oracle marks every selector bitstring whose weighted sum is
+exactly the target $T$:
+
+$$
+\sum_i x_i a_i = T
+$$
+
+Step 3: apply the diffusion operator, a reflection around the uniform state:
+
+$$
+U_d = 2|\varphi\rangle\langle\varphi| - I
+$$
+
+Step 4: repeat the oracle and diffusion operators. If there are $M$ valid
+solutions among $N$ candidates, a standard iteration estimate is:
+
+$$
+r = \left\lfloor \frac{\pi}{4}\sqrt{\frac{N}{M}} \right\rfloor
+$$
+
+## Repository Overview
+
+The main implementation uses Qiskit's `WeightedAdder` to compute the selected
+subset sum inside the oracle. The notebook is the best starting point for
+reading the workflow, and the Python file keeps the same idea in a reusable
+function. The circuit prepares selector qubits in superposition, computes the
+weighted sum, phase-flips states whose sum equals the target, uncomputes the
+adder workspace, and applies the diffuser to the selector qubits.
+
+- `subset_sum_grover_weighted_adder.ipynb` explains the weighted-adder Grover
+  construction step by step. The crucial step is using Qiskit's
+  `WeightedAdder` library circuit to perform the reversible weighted-sum
+  computation. This keeps the main demo compact, but the adder itself is mostly
+  treated as a library-level black box.
+- `quantum_subset_sum_weighted_adder.py` provides the reusable
+  `quantum_subset_sum(xs, target)` function and a quick command-line check.
+- `subset_sum_grover_based_on_paper.ipynb` follows the lower-level construction
+  from https://arxiv.org/pdf/2410.01775 and uses the public repository
+  `ABenoit0226/quantum-place-route` as a code reference. This notebook explores
+  how the subset-sum summation is carried out at the circuit level instead of
+  relying on Qiskit's `WeightedAdder` helper. Different adder/oracle designs can
+  lead to different circuit sizes and depths, which is why the paper focuses on
+  optimization.
+- `grover_demo.ipynb` is a smaller introductory Grover / subset-sum notebook.
 
 ## Files
 
@@ -52,37 +91,6 @@ The Python script is a reusable helper / smoke-test version of the
 - `subset_sum_grover_based_on_paper.ipynb` - notebook sketch following the
   procedure described in the paper at https://arxiv.org/pdf/2410.01775.
 - `grover_demo.ipynb` - introductory Grover / subset-sum notebook.
-
-## WeightedAdder Approach
-
-For a set such as:
-
-```python
-S = [1, 2, 3]
-target = 3
-```
-
-the valid selector bitstrings are:
-
-```text
-011 -> choose 1 and 2
-100 -> choose 3
-```
-
-The weighted-adder Grover oracle follows this pattern:
-
-```text
-1. Put selector qubits into superposition.
-2. Use WeightedAdder to compute sum_i x_i * a_i into a sum register.
-3. Phase-flip states whose sum register equals target.
-4. Uncompute the WeightedAdder so workspace qubits return to |0>.
-5. Apply the Grover diffuser to selector qubits only.
-6. Use `Statevector` outside the circuit to read selector probabilities.
-```
-
-The important reversible-computing step is uncomputation. The sum register and
-adder work qubits must be cleared before the diffuser, otherwise the selector
-qubits remain entangled with arithmetic workspace.
 
 ## Install
 
@@ -110,17 +118,13 @@ Introductory notebook:
 jupyter notebook grover_demo.ipynb
 ```
 
-## Run the Python Helper
+## Python Function and Quick Check
 
-```bash
-python quantum_subset_sum_weighted_adder.py
-```
-
-The script tries a few small examples and prints the result returned by
-`quantum_subset_sum`. Treat this as a quick command-line check and reusable
-implementation, not the main explanatory demo.
-
-## Use the Helper Function
+The reusable entry point is `quantum_subset_sum(xs, target)`. It takes a finite
+list of positive integers and a positive target, then returns a subset of
+indices whose selected values sum to the target. This matches the expected
+project interface: return a valid index subset, or report that no solution was
+found for the tested small instance.
 
 ```python
 from quantum_subset_sum_weighted_adder import quantum_subset_sum
@@ -129,25 +133,29 @@ result = quantum_subset_sum([1, 2, 3], 3, verbose=True)
 print(result)
 ```
 
-The result includes:
+The returned result includes the subset indices, selector bits, selected total,
+Statevector probability for the chosen bitstring, status, and Grover iteration
+count.
 
-- the subset indices found
-- the selector bits
-- the total
-- the Statevector probability for the selected bitstring
-- status, such as `found`, `found_by_classical_fallback`, or
-  `no_solution_certified`
-- the Grover iteration count when applicable
+The same implementation can be run as a quick command-line check:
+
+```bash
+python quantum_subset_sum_weighted_adder.py
+```
 
 ## Notes
 
-This is a small bootcamp-style project. The `WeightedAdder` version is useful
-for explaining the algorithm without hand-building the reversible arithmetic.
-The notebook based on the paper is where we explore lower-level oracle
-construction.
+The `WeightedAdder` version is the main working implementation. The notebook
+based on the paper/repository is a study track for building the oracle at a
+lower level.
 
 ## TODO
-finish based_on_paper notebook. Also add another one using quantum phase transition to solve.
+
+- Finish the notebook based on the paper/repository implementation.
+- Add a phase-estimation or quantum-phase-transition based variant.
+- Add more benchmark cases for small inputs.
+- Compare the `WeightedAdder` version with a lower-level reversible-arithmetic
+  oracle.
 
 
 
