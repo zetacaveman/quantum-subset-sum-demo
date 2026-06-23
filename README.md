@@ -3,6 +3,8 @@
 Educational Qiskit demos for solving small Subset Sum instances with Grover's
 algorithm.
 
+（It isn't fully complete yet）
+
 The code and notebooks here focus on Subset Sum, not the older Sudoku demo that
 used to live in this repository.
 
@@ -49,7 +51,7 @@ The Python script is a reusable helper / smoke-test version of the
   the weighted-adder Grover approach.
 - `subset_sum_grover_based_on_paper.ipynb` - notebook sketch following the
   procedure described in the paper at https://arxiv.org/pdf/2410.01775.
-- `subset_sum_grover_demo.ipynb` - introductory Grover / subset-sum notebook.
+- `grover_demo.ipynb` - introductory Grover / subset-sum notebook.
 
 ## WeightedAdder Approach
 
@@ -105,7 +107,7 @@ jupyter notebook subset_sum_grover_based_on_paper.ipynb
 Introductory notebook:
 
 ```bash
-jupyter notebook subset_sum_grover_demo.ipynb
+jupyter notebook grover_demo.ipynb
 ```
 
 ## Run the Python Helper
