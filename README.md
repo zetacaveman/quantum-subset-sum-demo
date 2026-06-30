@@ -149,13 +149,20 @@ The `WeightedAdder` version is the main working implementation. The notebook
 based on the paper/repository is a study track for building the oracle at a
 lower level.
 
+## References and Future Reading
+
+- David Gunter and Toks Adedoyin, "Towards An Implementation of the Subset-sum
+  Problem on the IBM Quantum Experience", arXiv:1912.03254. This paper proposes
+  a different subset-sum approach based on quantum phase estimation and
+  amplitude amplification:
+  https://arxiv.org/abs/1912.03254
+
 ## TODO
 
 - Finish the notebook based on the paper/repository implementation.
-- Add a phase-estimation or quantum-phase-transition based variant.
+- Study arXiv:1912.03254 and consider adding a phase-estimation based
+  subset-sum variant.
 - Add more benchmark cases for small inputs.
 - Compare the `WeightedAdder` version with a lower-level reversible-arithmetic
   oracle.
-
-
 
